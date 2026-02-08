@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nginda Ward MCA Live Poll</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+body{margin:0;font-family:Poppins,Arial,sans-serif;background:linear-gradient(135deg,#000,#062e14);color:#fff;padding:15px;}
+header{text-align:center;padding:20px;border-bottom:2px solid gold;}
+header h1{color:gold;margin:0;}
+#countdown{margin-top:8px;font-weight:bold;color:#7CFF9B;}
+#timeBarBg{background:#333;border-radius:20px;height:12px;max-width:500px;margin:12px auto;}
+#timeBar{height:100%;width:100%;background:linear-gradient(90deg,#d4af37,#bfa335);transition:width 1s;}
+#analytics{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-top:25px;}
+.stat{background:#111;border:1px solid gold;border-radius:12px;padding:15px;text-align:center;}
+.stat h2{margin:0;color:gold;}
+#candidates{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:30px;}
+.candidate{background:#111;border:1px solid gold;border-radius:14px;padding:18px;text-align:center;position:relative;}
+.vote-btn{background:gold;border:none;padding:10px 22px;border-radius:25px;font-weight:bold;cursor:pointer;}
+.vote-btn:disabled{opacity:.5;cursor:not-allowed;}
+.vote-bar{height:6px;background:#fff;position:absolute;bottom:0;left:0;border-radius:0 0 14px 14px;}
+.actions{text-align:center;margin-top:25px;}
+.actions button{padding:12px 22px;border:none;border-radius:30px;font-weight:bold;margin:6px;cursor:pointer;}
+.wa{background:#25d366;color:#fff;}
+.fb{background:#1877f2;color:#fff;}
+.support{background:gold;color:#000;}
+.chart-box{background:#fff;border-radius:12px;padding:15px;margin-top:30px;}
+.admin{margin-top:35px;background:#111;padding:18px;border-radius:14px;border:1px solid gold;}
+.admin h3{color:gold;margin-top:0;}
+.admin input,.admin button{width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:none;}
+.admin button{background:#b11226;color:#fff;font-weight:bold;cursor:pointer;}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>NGINDA WARD MCA LIVE POLL</h1>
+  <p>MARAGÚA CONSTITUENCY</p>
+  <div id="countdown"></div>
+  <div id="timeBarBg"><div id="timeBar"></div></div>
+</header>
+
+<div id="analytics">
+  <div class="stat"><h2 id="totalVotes">0</h2><p>Total Votes</p></div>
+  <div class="stat"><h2 id="turnout">0%</h2><p>Turnout</p></div>
+  <div class="stat"><h2 id="leading">—</h2><p>Leading</p></div>
+</div>
+
+<div id="candidates"></div>
+<div style="text-align:center;margin-top:10px;" id="voteStatus"></div>
+
+<div class="chart-box">
+  <canvas id="pollChart"></canvas>
+</div>
+
+<div class="actions">
+  <button class="wa" onclick="shareWhatsApp()">WhatsApp</button>
+  <button class="fb" onclick="shareFacebook()">Facebook</button>
+  <button class="support" onclick="supportHub()">Support</button>
+</div>
+
+<!-- ADMIN DASHBOARD -->
+<div class="admin" id="loginBox">
+  <h3>Admin Login</h3>
+  <input type="password" id="adminPinInput" placeholder="Enter Admin PIN">
+  <button onclick="adminLogin()">Login</button>
+  <div id="adminMsg"></div>
+</div>
+
+<div class="admin" id="adminPanel" style="display:none;">
+  <h3>Admin Panel</h3>
+  <div id="voteInputs"></div>
+  <button onclick="addVotes()">Add Votes</button>
+  <button onclick="resetVotes()">Reset All Votes</button>
+  <button onclick="adminLogout()">Logout</button>
+  <div id="adminMsgPanel"></div>
+</div>
+
+<script>
+/* ---------- FIREBASE ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyCDLp5jthejJ-h8HS653KUzqF9mBrnm2MU",
+  authDomain: "nginda-ward-polls.firebaseapp.com",
+  databaseURL: "https://nginda-ward-polls-default-rtdb.firebaseio.com",
+  projectId: "nginda-ward-polls",
+  storageBucket: "nginda-ward-polls.firebasestorage.app",
+  messagingSenderId: "379756032408",
+  appId: "1:379756032408:web:276a37829322e430a5bbed"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const PATH = "nginda_ward/votes";
+
+/* ---------- DOM ---------- */
+const countdown = document.getElementById("countdown");
+const timeBar = document.getElementById("timeBar");
+const candidatesBox = document.getElementById("candidates");
+const totalVotesEl = document.getElementById("totalVotes");
+const turnoutEl = document.getElementById("turnout");
+const leadingEl = document.getElementById("leading");
+const voteStatus = document.getElementById("voteStatus");
+
+const loginBox = document.getElementById("loginBox");
+const adminPanel = document.getElementById("adminPanel");
+const voteInputs = document.getElementById("voteInputs");
+const adminMsg = document.getElementById("adminMsg");
+const adminMsgPanel = document.getElementById("adminMsgPanel");
+
+/* ---------- STATE ---------- */
+const REGISTERED_VOTERS = 18000;
+const ADMIN_PIN = "2547";
+let pollClosed = false;
+
+/* ---------- COUNTDOWN ---------- */
+const DURATION = 72*60*60*1000;
+if(!localStorage.pollStartTime) localStorage.pollStartTime = Date.now();
+const endTime = parseInt(localStorage.pollStartTime) + DURATION;
+
+setInterval(()=>{
+  const rem = endTime - Date.now();
+  if(rem<=0){
+    countdown.innerText = "Voting Closed";
+    timeBar.style.width = "0%";
+    pollClosed = true;
+    return;
+  }
+  const h=Math.floor(rem/36e5),
+        m=Math.floor(rem%36e5/6e4),
+        s=Math.floor(rem%6e4/1000);
+  countdown.innerText=`Voting ends in ${h}h ${m}m ${s}s`;
+  timeBar.style.width=(rem/DURATION*100)+"%";
+},1000);
+
+/* ---------- CANDIDATES ---------- */
+const candidates=[
+ {id:"john",name:"Hon. John MWANGI WA Mpesa"},
+ {id:"kinuthia",name:"Hon. Kinuthia Ngunjiri"},
+ {id:"zabron",name:"Hon. Zabron Machungu"},
+ {id:"thairu",name:"Hon. THAIRU Wang'endo"},
+ {id:"kamonde",name:"Hon. Engineer Martin Kamonde"},
+ {id:"tadeo",name:"Hon. Tadeo Maina"},
+ {id:"stella",name:"Hon. Stella NJERI"},
+ {id:"spoilt",name:"Undecided / Spoilt Vote"}
+];
+
+/* Initialize votes if missing */
+candidates.forEach(c=>{
+  db.ref(`${PATH}/${c.id}`).get().then(s=>{
+    if(!s.exists()) db.ref(`${PATH}/${c.id}`).set(0);
+  });
+});
+
+/* ---------- RENDER ---------- */
+let chart;
+function render(votes){
+  const total = Object.values(votes).reduce((a,b)=>a+b,0) || 1;
+  totalVotesEl.innerText = total;
+  turnoutEl.innerText = ((total/REGISTERED_VOTERS)*100).toFixed(1)+"%";
+  const leader = [...candidates].sort((a,b)=>(votes[b.id]||0)-(votes[a.id]||0))[0];
+  leadingEl.innerText = leader.name;
+
+  candidatesBox.innerHTML="";
+  candidates.forEach(c=>{
+    const v=votes[c.id]||0;
+    const pct=Math.round(v/total*100);
+    candidatesBox.innerHTML+=`
+      <div class="candidate">
+        <h3>${c.name}</h3>
+        <button class="vote-btn"
+          onclick="vote('${c.id}')"
+          ${localStorage.voted || pollClosed ? "disabled" : ""}>
+          Vote
+        </button>
+        <div>${v} votes (${pct}%)</div>
+        <div class="vote-bar" style="width:${pct}%"></div>
+      </div>`;
+  });
+
+  const pollCanvas = document.getElementById("pollChart");
+  if(chart) chart.destroy();
+  chart=new Chart(pollCanvas,{
+    type:"bar",
+    data:{
+      labels:candidates.map(c=>c.name),
+      datasets:[{data:candidates.map(c=>votes[c.id]||0),backgroundColor:"#d4af37"}]
+    },
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
+  });
+
+  if(adminPanel.style.display!=="none"){
+    voteInputs.innerHTML="";
+    candidates.forEach(c=>{
+      voteInputs.innerHTML+=`<input type="number" min="0" value="0" id="add-${c.id}" placeholder="${c.name}">`;
+    });
+  }
+}
+
+/* ---------- VOTE ---------- */
+function vote(id){
+  if(localStorage.voted || pollClosed){
+    voteStatus.innerText="You have already voted or poll is closed.";
+    return;
+  }
+  db.ref(`${PATH}/${id}`).transaction(v=>(v||0)+1);
+  localStorage.voted="yes";
+  voteStatus.innerText = "Thank you for voting!";
+}
+
+/* ---------- LIVE ---------- */
+db.ref(PATH).on("value",snap=>render(snap.val()||{}));
+
+/* ---------- SHARE ---------- */
+function shareWhatsApp(){window.open("https://wa.me/?text="+encodeURIComponent("Nginda Ward MCA Live Poll — Vote now! "+location.href));}
+function shareFacebook(){window.open("https://www.facebook.com/sharer/sharer.php?u="+encodeURIComponent(location.href));}
+function supportHub(){alert("Support Media Hub via M-Pesa Till 5827051\n\nGod Bless 🙏");}
+
+/* ---------- ADMIN ---------- */
+function adminLogin(){
+  if(document.getElementById("adminPinInput").value !== ADMIN_PIN){
+    adminMsg.innerText="Incorrect PIN"; return;
+  }
+  loginBox.style.display="none";
+  adminPanel.style.display="block";
+  adminMsg.innerText="";
+}
+
+function adminLogout(){
+  loginBox.style.display="block";
+  adminPanel.style.display="none";
+  adminMsgPanel.innerText="";
+}
+
+function addVotes(){
+  candidates.forEach(c=>{
+    const v=parseInt(document.getElementById("add-"+c.id).value)||0;
+    if(v>0) db.ref(`${PATH}/${c.id}`).transaction(x=>(x||0)+v);
+  });
+  adminMsgPanel.innerText="Votes added successfully";
+}
+
+function resetVotes(){
+  if(!confirm("Are you sure you want to reset all votes?")) return;
+  candidates.forEach(c=>{
+    db.ref(`${PATH}/${c.id}`).set(0);
+  });
+  localStorage.removeItem("voted");
+  localStorage.removeItem("pollStartTime");
+  adminMsgPanel.innerText="All votes reset";
+}
+</script>
+</body>
+</html>
