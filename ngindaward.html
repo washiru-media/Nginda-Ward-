@@ -10,13 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
-body{
-  margin:0;
-  font-family:Poppins,Arial,sans-serif;
-  background:linear-gradient(135deg,#000,#062e14);
-  color:#fff;
-  padding:15px;
-}
+body{margin:0;font-family:Poppins,Arial,sans-serif;background:linear-gradient(135deg,#000,#062e14);color:#fff;padding:15px;}
 header{text-align:center;padding:20px;border-bottom:2px solid gold;}
 header h1{color:gold;margin:0;}
 #countdown{margin-top:8px;font-weight:bold;color:#7CFF9B;}
@@ -36,21 +30,9 @@ header h1{color:gold;margin:0;}
 .fb{background:#1877f2;color:#fff;}
 .support{background:gold;color:#000;}
 .chart-box{background:#fff;border-radius:12px;padding:15px;margin-top:30px;}
-.admin{
-  margin-top:35px;
-  background:#111;
-  padding:18px;
-  border-radius:14px;
-  border:1px solid gold;
-}
+.admin{margin-top:35px;background:#111;padding:18px;border-radius:14px;border:1px solid gold;}
 .admin h3{color:gold;margin-top:0;}
-.admin input,.admin button{
-  width:100%;
-  padding:10px;
-  margin-bottom:10px;
-  border-radius:8px;
-  border:none;
-}
+.admin input,.admin button{width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:none;}
 .admin button{background:#b11226;color:#fff;font-weight:bold;cursor:pointer;}
 </style>
 </head>
@@ -166,6 +148,8 @@ const candidates=[
  {id:"stella",name:"Hon. Stella NJERI"},
  {id:"spoilt",name:"Undecided / Spoilt Vote"}
 ];
+
+/* Initialize votes if missing */
 candidates.forEach(c=>{
   db.ref(`${PATH}/${c.id}`).get().then(s=>{
     if(!s.exists()) db.ref(`${PATH}/${c.id}`).set(0);
@@ -219,31 +203,27 @@ function render(votes){
 
 /* ---------- VOTE ---------- */
 function vote(id){
-  if(localStorage.voted || pollClosed) return;
+  if(localStorage.voted || pollClosed){
+    voteStatus.innerText="You have already voted or poll is closed.";
+    return;
+  }
   db.ref(`${PATH}/${id}`).transaction(v=>(v||0)+1);
   localStorage.voted="yes";
   voteStatus.innerText = "Thank you for voting!";
 }
 
 /* ---------- LIVE ---------- */
-db.ref(PATH).on("value",s=>render(s.val()||{}));
+db.ref(PATH).on("value",snap=>render(snap.val()||{}));
 
 /* ---------- SHARE ---------- */
-function shareWhatsApp(){
-  window.open("https://wa.me/?text="+encodeURIComponent("Nginda Ward MCA Live Poll — Vote now! "+location.href));
-}
-function shareFacebook(){
-  window.open("https://www.facebook.com/sharer/sharer.php?u="+encodeURIComponent(location.href));
-}
-function supportHub(){
-  alert("Support Media Hub via M-Pesa Till 5827051\n\nGod Bless 🙏");
-}
+function shareWhatsApp(){window.open("https://wa.me/?text="+encodeURIComponent("Nginda Ward MCA Live Poll — Vote now! "+location.href));}
+function shareFacebook(){window.open("https://www.facebook.com/sharer/sharer.php?u="+encodeURIComponent(location.href));}
+function supportHub(){alert("Support Media Hub via M-Pesa Till 5827051\n\nGod Bless 🙏");}
 
-/* ---------- ADMIN FUNCTIONS ---------- */
+/* ---------- ADMIN ---------- */
 function adminLogin(){
   if(document.getElementById("adminPinInput").value !== ADMIN_PIN){
-    adminMsg.innerText="Incorrect PIN";
-    return;
+    adminMsg.innerText="Incorrect PIN"; return;
   }
   loginBox.style.display="none";
   adminPanel.style.display="block";
@@ -275,4 +255,4 @@ function resetVotes(){
 }
 </script>
 </body>
-</html>
+  </html>
