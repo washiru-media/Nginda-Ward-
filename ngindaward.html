@@ -20,28 +20,22 @@ body{
 header{text-align:center;padding:20px;border-bottom:2px solid gold;}
 header h1{color:gold;margin:0;}
 #countdown{margin-top:8px;font-weight:bold;color:#7CFF9B;}
-
 #timeBarBg{background:#333;border-radius:20px;height:12px;max-width:500px;margin:12px auto;}
 #timeBar{height:100%;width:100%;background:linear-gradient(90deg,#d4af37,#bfa335);transition:width 1s;}
-
 #analytics{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-top:25px;}
 .stat{background:#111;border:1px solid gold;border-radius:12px;padding:15px;text-align:center;}
 .stat h2{margin:0;color:gold;}
-
 #candidates{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:30px;}
 .candidate{background:#111;border:1px solid gold;border-radius:14px;padding:18px;text-align:center;position:relative;}
 .vote-btn{background:gold;border:none;padding:10px 22px;border-radius:25px;font-weight:bold;cursor:pointer;}
 .vote-btn:disabled{opacity:.5;cursor:not-allowed;}
 .vote-bar{height:6px;background:#fff;position:absolute;bottom:0;left:0;border-radius:0 0 14px 14px;}
-
 .actions{text-align:center;margin-top:25px;}
 .actions button{padding:12px 22px;border:none;border-radius:30px;font-weight:bold;margin:6px;cursor:pointer;}
 .wa{background:#25d366;color:#fff;}
 .fb{background:#1877f2;color:#fff;}
 .support{background:gold;color:#000;}
-
 .chart-box{background:#fff;border-radius:12px;padding:15px;margin-top:30px;}
-
 .admin{
   margin-top:35px;
   background:#111;
@@ -108,10 +102,16 @@ header h1{color:gold;margin:0;}
 
 <script>
 /* ---------- FIREBASE ---------- */
-firebase.initializeApp({
-  apiKey:"AIzaSyA2tp6rXn0KfV7oSo_SN8RnYs2yE0o9FDw",
-  databaseURL:"https://evurorewardpolls-default-rtdb.firebaseio.com"
-});
+const firebaseConfig = {
+  apiKey: "AIzaSyCDLp5jthejJ-h8HS653KUzqF9mBrnm2MU",
+  authDomain: "nginda-ward-polls.firebaseapp.com",
+  databaseURL: "https://nginda-ward-polls-default-rtdb.firebaseio.com",
+  projectId: "nginda-ward-polls",
+  storageBucket: "nginda-ward-polls.firebasestorage.app",
+  messagingSenderId: "379756032408",
+  appId: "1:379756032408:web:276a37829322e430a5bbed"
+};
+firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const PATH = "nginda_ward/votes";
 
@@ -161,7 +161,7 @@ const candidates=[
  {id:"kinuthia",name:"Hon. Kinuthia Ngunjiri"},
  {id:"zabron",name:"Hon. Zabron Machungu"},
  {id:"thairu",name:"Hon. THAIRU Wang'endo"},
- {id:"kamande",name:"Hon. Engineer Martin Kamande"},
+ {id:"kamonde",name:"Hon. Engineer Martin Kamonde"},
  {id:"tadeo",name:"Hon. Tadeo Maina"},
  {id:"stella",name:"Hon. Stella NJERI"},
  {id:"spoilt",name:"Undecided / Spoilt Vote"}
@@ -198,17 +198,17 @@ function render(votes){
       </div>`;
   });
 
+  const pollCanvas = document.getElementById("pollChart");
   if(chart) chart.destroy();
-  chart=new Chart(pollChart,{
+  chart=new Chart(pollCanvas,{
     type:"bar",
     data:{
       labels:candidates.map(c=>c.name),
-      datasets:[{data:candidates.map(c=>votes[c.id]||0)}]
+      datasets:[{data:candidates.map(c=>votes[c.id]||0),backgroundColor:"#d4af37"}]
     },
     options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
   });
 
-  // Admin inputs
   if(adminPanel.style.display!=="none"){
     voteInputs.innerHTML="";
     candidates.forEach(c=>{
@@ -248,7 +248,6 @@ function adminLogin(){
   loginBox.style.display="none";
   adminPanel.style.display="block";
   adminMsg.innerText="";
-  render({}); // ensure voteInputs populated
 }
 
 function adminLogout(){
