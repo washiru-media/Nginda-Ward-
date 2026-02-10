@@ -11,15 +11,20 @@
 
 <style>
 body{
-  margin:0;
-  font-family:Poppins,Arial,sans-serif;
+  margin:0;font-family:Poppins,Arial,sans-serif;
   background:linear-gradient(135deg,#000,#062e14);
-  color:#fff;
-  padding:15px
+  color:#fff;padding:15px
 }
 header{text-align:center;padding:20px;border-bottom:2px solid gold}
 header h1{color:gold;margin:0}
-#countdown{margin-top:8px;color:#7CFF9B;font-weight:bold}
+#countdown{
+  margin-top:10px;font-weight:900;font-size:1.25rem;
+  color:#7CFF9B;animation:pulse 1s infinite alternate
+}
+@keyframes pulse{
+  from{transform:scale(1);color:#7CFF9B}
+  to{transform:scale(1.05);color:#00ffcc}
+}
 #barBg{background:#333;border-radius:20px;height:12px;max-width:500px;margin:10px auto}
 #bar{height:100%;background:linear-gradient(90deg,#d4af37,#bfa335);width:100%}
 #stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-top:25px}
@@ -28,18 +33,17 @@ header h1{color:gold;margin:0}
 #candidates{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:30px}
 .card{background:#111;border:1px solid gold;border-radius:14px;padding:18px;text-align:center;position:relative}
 .vote-btn{background:gold;border:none;padding:10px 22px;border-radius:25px;font-weight:bold;cursor:pointer}
-.vote-btn:disabled{opacity:.5;cursor:not-allowed}
+.vote-btn:disabled{opacity:.4;cursor:not-allowed}
 .bar{height:6px;background:#fff;position:absolute;bottom:0;left:0;border-radius:0 0 14px 14px}
-.actions{text-align:center;margin-top:25px}
-.actions button{padding:12px 22px;border:none;border-radius:30px;font-weight:bold;margin:6px;cursor:pointer}
-.wa{background:#25d366;color:#fff}
-.fb{background:#1877f2;color:#fff}
-.support{background:gold;color:#000}
 .chart-box{background:#fff;border-radius:12px;padding:15px;margin-top:30px}
 .admin{margin-top:35px;background:#111;padding:18px;border-radius:14px;border:1px solid gold}
 .admin h3{color:gold;margin-top:0}
-.admin input,.admin button{width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:none}
+.admin input,.admin select,.admin button{width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:none}
 .admin button{background:#b11226;color:#fff;font-weight:bold}
+.share a{margin:5px;display:inline-block;padding:10px 18px;border-radius:25px;color:#fff;text-decoration:none;cursor:pointer}
+.whatsapp{background:#25D366}
+.facebook{background:#1877f2}
+.support{background:#9c27b0}
 </style>
 </head>
 
@@ -47,29 +51,27 @@ header h1{color:gold;margin:0}
 
 <header>
   <h1>NGINDA WARD MCA LIVE POLL</h1>
-  <p>MARAGÚA CONSTITUENCY</p>
-  <div id="countdown"></div>
+  <p>VOTE FOR YOUR PREFERRED MCA</p>
+  <div id="countdown">Loading…</div>
   <div id="barBg"><div id="bar"></div></div>
 </header>
 
 <div id="stats">
   <div class="stat"><h2 id="totalVotes">0</h2><p>Total Votes</p></div>
-  <div class="stat"><h2 id="turnout">0%</h2><p>Turnout</p></div>
+  <div class="stat"><h2 id="turnout">0%</h2><p>Turnout (15,000)</p></div>
   <div class="stat"><h2 id="leader">—</h2><p>Leading</p></div>
 </div>
 
 <div id="candidates"></div>
 <div id="status" style="text-align:center;margin-top:10px"></div>
 
-<div class="chart-box">
-  <canvas id="chart"></canvas>
+<div class="share" style="text-align:center">
+  <a class="whatsapp" onclick="shareWhatsApp()">WhatsApp</a>
+  <a class="facebook" onclick="shareFacebook()">Facebook</a>
+  <a class="support" onclick="showSupport()">Support</a>
 </div>
 
-<div class="actions">
-  <button class="wa" onclick="shareWhatsApp()">WhatsApp</button>
-  <button class="fb" onclick="shareFacebook()">Facebook</button>
-  <button class="support" onclick="support()">Support</button>
-</div>
+<div class="chart-box"><canvas id="chart"></canvas></div>
 
 <div class="admin" id="loginBox">
   <h3>Admin Login</h3>
@@ -80,53 +82,92 @@ header h1{color:gold;margin:0}
 
 <div class="admin" id="adminPanel" style="display:none">
   <h3>Admin Dashboard</h3>
-  <div id="adminInputs"></div>
+  <select id="adminCandidate"></select>
+  <input type="number" id="adminVotes" placeholder="Votes to add">
   <button onclick="addVotes()">Add Votes</button>
-  <button onclick="resetVotes()">Reset All Votes</button>
+  <button onclick="restartCountdown()">Restart Countdown (48hrs)</button>
+  <button onclick="resetVotes()">Reset Votes</button>
   <button onclick="logout()">Logout</button>
   <div id="adminMsgPanel"></div>
 </div>
 
 <script>
-/* FIREBASE */
+/* ====== ELEMENT REFERENCES ====== */
+const countdown = document.getElementById("countdown");
+const bar = document.getElementById("bar");
+const totalVotes = document.getElementById("totalVotes");
+const turnout = document.getElementById("turnout");
+const leader = document.getElementById("leader");
+const status = document.getElementById("status");
+const adminCandidate = document.getElementById("adminCandidate");
+const adminVotes = document.getElementById("adminVotes");
+
+/* ====== FIREBASE ====== */
 firebase.initializeApp({
-  apiKey: "AIzaSyCDLp5jthejJ-h8HS653KUzqF9mBrnm2MU",
-  authDomain: "nginda-ward-polls.firebaseapp.com",
-  databaseURL: "https://nginda-ward-polls-default-rtdb.firebaseio.com",
-  projectId: "nginda-ward-polls",
-  storageBucket: "nginda-ward-polls.firebasestorage.app",
-  messagingSenderId: "379756032408",
-  appId: "1:379756032408:web:276a37829322e430a5bbed"
+  apiKey:"AIzaSyCDLp5jthejJ-h8HS653KUzqF9mBrnm2MU",
+  authDomain:"nginda-ward-polls.firebaseapp.com",
+  databaseURL:"https://nginda-ward-polls-default-rtdb.firebaseio.com",
+  projectId:"nginda-ward-polls"
 });
 
-const db = firebase.database();
-const PATH = "nginda_ward/votes";
-const VOTERS_PATH = "nginda_ward/voters";
-const ADMIN_PIN = "2547";
-const REGISTERED = 15000;
-let pollClosed = false;
-let userIP = null;
+const db=firebase.database();
+const PATH="nginda_ward/votes";
+const META="nginda_ward/meta";
+const IPPATH="nginda_ward/ips";
+const REGISTERED=15000;
+const DURATION=48*60*60*1000;
+const ADMIN_PIN="2547";
 
-/* IP FETCH (SAFE) */
+let pollClosed=false;
+let pollStart=null;
+let userIP=null;
+let voteButtonsDisabled=true;
+
+/* ====== FETCH USER IP ====== */
 fetch("https://api.ipify.org?format=json")
-  .then(r=>r.json())
-  .then(d=>userIP=d.ip)
-  .catch(()=>userIP=null);
+.then(r=>r.json()).then(d=>{
+  userIP=d.ip;
+  voteButtonsDisabled=false;
+  document.querySelectorAll(".vote-btn").forEach(b=>{
+    if(!localStorage.voted) b.disabled=false;
+  });
+});
 
-function safeKey(ip){
-  return ip.replace(/\./g,"_");
-}
+/* ====== INIT META ====== */
+db.ref(META).get().then(s=>{
+  if(!s.exists()){
+    db.ref(META).set({start: firebase.database.ServerValue.TIMESTAMP, closed:false});
+  }
+});
 
-/* CANDIDATES */
+/* ====== COUNTDOWN + AUTO LOCK ====== */
+db.ref(META+"/start").on("value", s => pollStart = s.val());
+db.ref(META+"/closed").on("value", s => pollClosed = !!s.val());
+
+setInterval(()=>{
+  if(!pollStart) return;
+  const remain = pollStart + DURATION - Date.now();
+  if(remain <= 0){
+    pollClosed = true;
+    countdown.innerText = "🛑 VOTING CLOSED — RESULTS LOCKED";
+    bar.style.width = "0%";
+    db.ref(META+"/closed").set(true);
+    return;
+  }
+  countdown.innerText=`⏳ ${Math.floor(remain/36e5)}h ${Math.floor(remain%36e5/6e4)}m ${Math.floor(remain%6e4/1000)}s`;
+  bar.style.width=(remain/DURATION*100)+"%";
+},1000);
+
+/* ====== CANDIDATES ====== */
 const candidates=[
- {id:"john",name:"Hon. John MWANGI WA Mpesa"},
- {id:"kinuthia",name:"Hon. Kinuthia Ngunjiri"},
- {id:"zabron",name:"Hon. Zabron Machungu"},
- {id:"thairu",name:"Hon. THAIRU Wang'endo"},
- {id:"kamonde",name:"Hon. Engineer Martin Kamonde"},
- {id:"tadeo",name:"Hon. Tadeo Maina"},
- {id:"stella",name:"Hon. Stella NJERI"},
- {id:"spoilt",name:"Undecided / Spoilt Vote"}
+  {id:"john",name:"Hon. John MWANGI WA Mpesa"},
+  {id:"kinuthia",name:"Hon. Kinuthia Ngunjiri"},
+  {id:"zabron",name:"Hon. Zabron Machungu"},
+  {id:"thairu",name:"Hon. THAIRU Wang'endo"},
+  {id:"kamonde",name:"Hon. Engineer Martin Kamonde"},
+  {id:"tadeo",name:"Hon. Tadeo Maina"},
+  {id:"stella",name:"Hon. Stella NJERI"},
+  {id:"spoilt",name:"Undecided / Spoilt Vote"}
 ];
 
 candidates.forEach(c=>{
@@ -135,120 +176,101 @@ candidates.forEach(c=>{
   });
 });
 
-/* COUNTDOWN */
-const DURATION = 72*60*60*1000;
-if(!localStorage.pollStart) localStorage.pollStart = Date.now();
-const end = +localStorage.pollStart + DURATION;
-
-setInterval(()=>{
-  const r = end - Date.now();
-  if(r<=0){
-    pollClosed=true;
-    countdown.innerText="Voting Closed";
-    bar.style.width="0%";
-    return;
-  }
-  bar.style.width=(r/DURATION*100)+"%";
-  const h=Math.floor(r/36e5),m=Math.floor(r%36e5/6e4),s=Math.floor(r%6e4/1000);
-  countdown.innerText=`Ends in ${h}h ${m}m ${s}s`;
-},1000);
-
-/* RENDER */
 let chart;
-function render(v){
+const candidatesBox = document.getElementById("candidates");
+const chartCanvas = document.getElementById("chart");
+
+db.ref(PATH).on("value", s => {
+  const v = s.val()||{};
   const total = Object.values(v).reduce((a,b)=>a+b,0);
-
   totalVotes.innerText = total;
-  turnout.innerText = total===0 ? "0%" : ((total/REGISTERED)*100).toFixed(1)+"%";
+  turnout.innerText = ((total/REGISTERED)*100).toFixed(1)+"%";
 
-  const sorted=[...candidates].sort((a,b)=>(v[b.id]||0)-(v[a.id]||0));
-  leader.innerHTML = `<b style="color:#fff">${sorted[0].name}</b>`;
+  const lead=[...candidates].sort((a,b)=>(v[b.id]||0)-(v[a.id]||0))[0];
+  leader.innerHTML=`<b style="color:#fff">${lead.name}</b>`;
 
   candidatesBox.innerHTML="";
   candidates.forEach(c=>{
-    const pct = total===0?0:Math.round((v[c.id]||0)/total*100);
+    const pct = total ? Math.round((v[c.id]||0)/total*100) : 0;
     candidatesBox.innerHTML+=`
       <div class="card">
         <h3>${c.name}</h3>
         <button class="vote-btn" onclick="vote('${c.id}')"
-          ${localStorage.voted||pollClosed?"disabled":""}>Vote</button>
+          ${pollClosed||localStorage.voted||voteButtonsDisabled?"disabled":""}>
+          Vote
+        </button>
         <div>${v[c.id]||0} votes (${pct}%)</div>
         <div class="bar" style="width:${pct}%"></div>
       </div>`;
   });
 
   if(chart) chart.destroy();
-  chart=new Chart(document.getElementById("chart"),{
+  chart = new Chart(chartCanvas,{
     type:"bar",
-    data:{labels:candidates.map(c=>c.name),
-      datasets:[{data:candidates.map(c=>v[c.id]||0),backgroundColor:"#d4af37"}]},
+    data:{labels:candidates.map(c=>c.name),datasets:[{data:candidates.map(c=>v[c.id]||0),backgroundColor:"#d4af37"}]},
     options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
   });
-}
 
-const candidatesBox=document.getElementById("candidates");
-db.ref(PATH).on("value",s=>render(s.val()||{}));
+  adminCandidate.innerHTML = candidates.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+});
 
-/* VOTE */
+/* ====== VOTE FUNCTION ====== */
 function vote(id){
-  if(pollClosed||localStorage.voted||!userIP) return;
-  const key=safeKey(userIP);
-
-  db.ref(VOTERS_PATH+"/"+key).get().then(s=>{
-    if(s.exists()){
-      status.innerText="❌ You already voted from this network.";
-      return;
-    }
+  if(pollClosed || localStorage.voted || voteButtonsDisabled){
+    alert("Voting is closed.");
+    return;
+  }
+  const ipKey = userIP.replace(/\./g,"_");
+  db.ref(IPPATH+"/"+ipKey).get().then(s=>{
+    if(s.exists()){alert("Already voted");return;}
     db.ref(PATH+"/"+id).transaction(v=>(v||0)+1);
-    db.ref(VOTERS_PATH+"/"+key).set(true);
+    db.ref(IPPATH+"/"+ipKey).set(true);
     localStorage.voted="yes";
     status.innerText="✅ Thank you for voting!";
   });
 }
 
-/* ADMIN */
-function renderAdminInputs(){
-  adminInputs.innerHTML="";
-  candidates.forEach(c=>{
-    adminInputs.innerHTML+=
-      `<input type="number" min="0" id="add-${c.id}" placeholder="Add votes to ${c.name}">`;
-  });
-}
+/* ====== ADMIN ====== */
 function login(){
-  if(adminPin.value!==ADMIN_PIN){adminMsg.innerText="Invalid PIN";return;}
+  if(adminPin.value!==ADMIN_PIN){adminMsg.innerText="Invalid PIN"; return;}
   loginBox.style.display="none";
   adminPanel.style.display="block";
-  renderAdminInputs();
-}
-function logout(){
-  loginBox.style.display="block";
-  adminPanel.style.display="none";
-}
-function addVotes(){
-  candidates.forEach(c=>{
-    const v=parseInt(document.getElementById("add-"+c.id).value)||0;
-    if(v>0) db.ref(PATH+"/"+c.id).transaction(x=>(x||0)+v);
-  });
-  adminMsgPanel.innerText="Votes added successfully";
-}
-function resetVotes(){
-  if(!confirm("Reset all votes?")) return;
-  db.ref(PATH).set({});
-  db.ref(VOTERS_PATH).set({});
-  localStorage.clear();
-  adminMsgPanel.innerText="All votes reset";
 }
 
-/* SHARE */
-function shareWhatsApp(){
-  window.open("https://wa.me/?text="+encodeURIComponent("Nginda Ward MCA Live Poll "+location.href));
+function addVotes(){
+  if(pollClosed){alert("Results are locked"); return;}
+  const id = adminCandidate.value;
+  const v = parseInt(adminVotes.value)||0;
+  if(v<=0){alert("Enter valid vote count"); return;}
+  db.ref(PATH+"/"+id).transaction(x=>(x||0)+v);
 }
-function shareFacebook(){
-  window.open("https://www.facebook.com/sharer/sharer.php?u="+encodeURIComponent(location.href));
+
+function restartCountdown(){
+  if(pollClosed){alert("Poll already closed"); return;}
+  db.ref(META).set({start: firebase.database.ServerValue.TIMESTAMP, closed:false});
 }
-function support(){
-  alert("Support Media Hub via M-Pesa Till 5827051\n\nGod Bless 🙏");
+
+function resetVotes(){
+  if(pollClosed){alert("Results are locked"); return;}
+  if(confirm("Reset all votes?")){
+    db.ref(PATH).set({});
+    db.ref(IPPATH).set({});
+    localStorage.clear();
+  }
 }
+
+function logout(){loginBox.style.display="block"; adminPanel.style.display="none";}
+
+/* ====== SUPPORT ====== */
+function showSupport(){
+  alert(`Support Media Hub via MPesa Till 5827051
+or 0724253280
+FRANCIS MWANGI KIMANI 🙏`);
+}
+
+/* ====== SHARE ====== */
+function shareWhatsApp(){window.open(`https://wa.me/?text=${encodeURIComponent(document.title+" "+location.href)}`);}
+function shareFacebook(){window.open(`https://www.facebook.com/sharer/sharer.php?u=${location.href}`);}
 </script>
 
 </body>
