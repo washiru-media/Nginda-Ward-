@@ -10,7 +10,13 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
-body{margin:0;font-family:Poppins,Arial,sans-serif;background:linear-gradient(135deg,#000,#062e14);color:#fff;padding:15px}
+body{
+  margin:0;
+  font-family:Poppins,Arial,sans-serif;
+  background:linear-gradient(135deg,#000,#062e14);
+  color:#fff;
+  padding:15px
+}
 header{text-align:center;padding:20px;border-bottom:2px solid gold}
 header h1{color:gold;margin:0}
 #countdown{margin-top:8px;color:#7CFF9B;font-weight:bold}
@@ -95,9 +101,21 @@ firebase.initializeApp({
 
 const db = firebase.database();
 const PATH = "nginda_ward/votes";
+const VOTERS_PATH = "nginda_ward/voters";
 const ADMIN_PIN = "2547";
-const REGISTERED = 18000;
+const REGISTERED = 15000;
 let pollClosed = false;
+let userIP = null;
+
+/* IP FETCH (SAFE) */
+fetch("https://api.ipify.org?format=json")
+  .then(r=>r.json())
+  .then(d=>userIP=d.ip)
+  .catch(()=>userIP=null);
+
+function safeKey(ip){
+  return ip.replace(/\./g,"_");
+}
 
 /* CANDIDATES */
 const candidates=[
@@ -124,64 +142,76 @@ const end = +localStorage.pollStart + DURATION;
 
 setInterval(()=>{
   const r = end - Date.now();
-  if(r <= 0){
-    pollClosed = true;
-    document.getElementById("countdown").innerText = "Voting Closed";
-    document.getElementById("bar").style.width = "0%";
+  if(r<=0){
+    pollClosed=true;
+    countdown.innerText="Voting Closed";
+    bar.style.width="0%";
     return;
   }
-  document.getElementById("bar").style.width = (r/DURATION*100)+"%";
+  bar.style.width=(r/DURATION*100)+"%";
   const h=Math.floor(r/36e5),m=Math.floor(r%36e5/6e4),s=Math.floor(r%6e4/1000);
-  document.getElementById("countdown").innerText = `Ends in ${h}h ${m}m ${s}s`;
+  countdown.innerText=`Ends in ${h}h ${m}m ${s}s`;
 },1000);
 
 /* RENDER */
 let chart;
 function render(v){
-  const total = Object.values(v).reduce((a,b)=>a+b,0) || 1;
-  document.getElementById("totalVotes").innerText = total;
-  document.getElementById("turnout").innerText = ((total/REGISTERED)*100).toFixed(1)+"%";
+  const total = Object.values(v).reduce((a,b)=>a+b,0);
 
-  const sorted = [...candidates].sort((a,b)=>(v[b.id]||0)-(v[a.id]||0));
-  document.getElementById("leader").innerText = sorted[0].name;
+  totalVotes.innerText = total;
+  turnout.innerText = total===0 ? "0%" : ((total/REGISTERED)*100).toFixed(1)+"%";
 
-  const box = document.getElementById("candidates");
-  box.innerHTML="";
+  const sorted=[...candidates].sort((a,b)=>(v[b.id]||0)-(v[a.id]||0));
+  leader.innerHTML = `<b style="color:#fff">${sorted[0].name}</b>`;
+
+  candidatesBox.innerHTML="";
   candidates.forEach(c=>{
-    const pct = Math.round((v[c.id]||0)/total*100);
-    box.innerHTML += `
+    const pct = total===0?0:Math.round((v[c.id]||0)/total*100);
+    candidatesBox.innerHTML+=`
       <div class="card">
         <h3>${c.name}</h3>
-        <button class="vote-btn" onclick="vote('${c.id}')" ${localStorage.voted||pollClosed?"disabled":""}>Vote</button>
+        <button class="vote-btn" onclick="vote('${c.id}')"
+          ${localStorage.voted||pollClosed?"disabled":""}>Vote</button>
         <div>${v[c.id]||0} votes (${pct}%)</div>
         <div class="bar" style="width:${pct}%"></div>
       </div>`;
   });
 
   if(chart) chart.destroy();
-  chart = new Chart(document.getElementById("chart"),{
+  chart=new Chart(document.getElementById("chart"),{
     type:"bar",
-    data:{labels:candidates.map(c=>c.name),datasets:[{data:candidates.map(c=>v[c.id]||0),backgroundColor:"#d4af37"}]},
+    data:{labels:candidates.map(c=>c.name),
+      datasets:[{data:candidates.map(c=>v[c.id]||0),backgroundColor:"#d4af37"}]},
     options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
   });
 }
 
-/* LIVE */
+const candidatesBox=document.getElementById("candidates");
 db.ref(PATH).on("value",s=>render(s.val()||{}));
 
 /* VOTE */
 function vote(id){
-  if(localStorage.voted || pollClosed) return;
-  db.ref(PATH+"/"+id).transaction(v=>(v||0)+1);
-  localStorage.voted = "yes";
-  document.getElementById("status").innerText = "Thank you for voting!";
+  if(pollClosed||localStorage.voted||!userIP) return;
+  const key=safeKey(userIP);
+
+  db.ref(VOTERS_PATH+"/"+key).get().then(s=>{
+    if(s.exists()){
+      status.innerText="❌ You already voted from this network.";
+      return;
+    }
+    db.ref(PATH+"/"+id).transaction(v=>(v||0)+1);
+    db.ref(VOTERS_PATH+"/"+key).set(true);
+    localStorage.voted="yes";
+    status.innerText="✅ Thank you for voting!";
+  });
 }
 
 /* ADMIN */
 function renderAdminInputs(){
   adminInputs.innerHTML="";
   candidates.forEach(c=>{
-    adminInputs.innerHTML+=`<input type="number" min="0" value="0" id="add-${c.id}" placeholder="Add votes to ${c.name}">`;
+    adminInputs.innerHTML+=
+      `<input type="number" min="0" id="add-${c.id}" placeholder="Add votes to ${c.name}">`;
   });
 }
 function login(){
@@ -196,23 +226,29 @@ function logout(){
 }
 function addVotes(){
   candidates.forEach(c=>{
-    const val=parseInt(document.getElementById("add-"+c.id).value,10)||0;
-    if(val>0) db.ref(PATH+"/"+c.id).transaction(v=>(v||0)+val);
+    const v=parseInt(document.getElementById("add-"+c.id).value)||0;
+    if(v>0) db.ref(PATH+"/"+c.id).transaction(x=>(x||0)+v);
   });
   adminMsgPanel.innerText="Votes added successfully";
 }
 function resetVotes(){
   if(!confirm("Reset all votes?")) return;
-  candidates.forEach(c=>db.ref(PATH+"/"+c.id).set(0));
-  localStorage.removeItem("voted");
-  localStorage.removeItem("pollStart");
+  db.ref(PATH).set({});
+  db.ref(VOTERS_PATH).set({});
+  localStorage.clear();
   adminMsgPanel.innerText="All votes reset";
 }
 
 /* SHARE */
-function shareWhatsApp(){window.open("https://wa.me/?text="+encodeURIComponent("Nginda Ward MCA Live Poll "+location.href));}
-function shareFacebook(){window.open("https://www.facebook.com/sharer/sharer.php?u="+encodeURIComponent(location.href));}
-function support(){alert("Support Media Hub via M-Pesa Till 5827051\n\nGod Bless 🙏");}
+function shareWhatsApp(){
+  window.open("https://wa.me/?text="+encodeURIComponent("Nginda Ward MCA Live Poll "+location.href));
+}
+function shareFacebook(){
+  window.open("https://www.facebook.com/sharer/sharer.php?u="+encodeURIComponent(location.href));
+}
+function support(){
+  alert("Support Media Hub via M-Pesa Till 5827051\n\nGod Bless 🙏");
+}
 </script>
 
 </body>
