@@ -3,274 +3,252 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nginda Ward MCA Live Poll</title>
-
+<title>Nginda Ward Elite Political System</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
-body{
-  margin:0;font-family:Poppins,Arial,sans-serif;
-  background:linear-gradient(135deg,#000,#062e14);
-  color:#fff;padding:15px
-}
-header{text-align:center;padding:20px;border-bottom:2px solid gold}
-header h1{color:gold;margin:0}
-#countdown{
-  margin-top:10px;font-weight:900;font-size:1.25rem;
-  color:#7CFF9B;animation:pulse 1s infinite alternate
-}
-@keyframes pulse{
-  from{transform:scale(1);color:#7CFF9B}
-  to{transform:scale(1.05);color:#00ffcc}
-}
-#barBg{background:#333;border-radius:20px;height:12px;max-width:500px;margin:10px auto}
-#bar{height:100%;background:linear-gradient(90deg,#d4af37,#bfa335);width:100%}
-#stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-top:25px}
-.stat{background:#111;border:1px solid gold;border-radius:12px;padding:15px;text-align:center}
-.stat h2{margin:0;color:gold}
-#candidates{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:30px}
-.card{background:#111;border:1px solid gold;border-radius:14px;padding:18px;text-align:center;position:relative}
-.vote-btn{background:gold;border:none;padding:10px 22px;border-radius:25px;font-weight:bold;cursor:pointer}
-.vote-btn:disabled{opacity:.4;cursor:not-allowed}
-.bar{height:6px;background:#fff;position:absolute;bottom:0;left:0;border-radius:0 0 14px 14px}
-.chart-box{background:#fff;border-radius:12px;padding:15px;margin-top:30px}
-.admin{margin-top:35px;background:#111;padding:18px;border-radius:14px;border:1px solid gold}
-.admin h3{color:gold;margin-top:0}
-.admin input,.admin select,.admin button{width:100%;padding:10px;margin-bottom:10px;border-radius:8px;border:none}
-.admin button{background:#b11226;color:#fff;font-weight:bold}
-.share a{margin:5px;display:inline-block;padding:10px 18px;border-radius:25px;color:#fff;text-decoration:none;cursor:pointer}
-.whatsapp{background:#25D366}
-.facebook{background:#1877f2}
-.support{background:#9c27b0}
+body{margin:0;font-family:'Segoe UI',sans-serif;background:#111;color:#fff;}
+header{background:linear-gradient(90deg,#000,#1a1a1a,#000);padding:25px;text-align:center;border-bottom:3px solid gold;}
+header h2{margin:0;color:gold;}
+nav{display:flex;flex-wrap:wrap;justify-content:center;background:#000;border-bottom:2px solid gold;}
+nav button{background:#222;border:2px solid gold;color:gold;padding:12px 20px;margin:5px;border-radius:10px;cursor:pointer;font-weight:bold;}
+nav button:hover, nav button.activeTab{background:gold;color:#000;}
+section{display:none;padding:25px;}
+.active{display:block;}
+.card{background:#1a1a1a;padding:25px;margin:15px 0;border-radius:12px;border:1px solid gold;}
+input,select,textarea{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid gold;background:#000;color:white;}
+button{padding:10px 14px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;}
+.primary{background:gold;color:black;}
+.green{background:#0f5132;color:white;}
+.red{background:#8b0000;color:white;}
+footer{text-align:center;padding:15px;background:#000;border-top:2px solid gold;color:gold;}
+canvas{background:#fff;border-radius:10px;padding:10px;}
+.voteBtn.voted{background:#0f5132;color:white;cursor:default;}
+.news-item,.career-item{background:#222;padding:10px;margin:8px 0;border-radius:6px;}
+#exitModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);color:#fff;justify-content:center;align-items:center;z-index:9999;}
+#exitModal .modal-content{background:#1a1a1a;padding:25px;border-radius:12px;border:2px solid gold;text-align:center;max-width:400px;}
 </style>
 </head>
-
 <body>
 
 <header>
-  <h1>NGINDA WARD MCA LIVE POLL</h1>
-  <p>VOTE FOR YOUR PREFERRED MCA</p>
-  <div id="countdown">Loading…</div>
-  <div id="barBg"><div id="bar"></div></div>
+<h2>Nginda Ward Elite Campaign Command Center</h2>
+<p>Managed by WA Shirú Media | Contact 0724 253 280</p>
 </header>
 
-<div id="stats">
-  <div class="stat"><h2 id="totalVotes">0</h2><p>Total Votes</p></div>
-  <div class="stat"><h2 id="turnout">0%</h2><p>Turnout (15,000)</p></div>
-  <div class="stat"><h2 id="leader">—</h2><p>Leading</p></div>
+<nav>
+<button onclick="showTab('home')" id="tabHome">Home</button>
+<button onclick="showTab('dashboard')" id="tabDashboard">Dashboard</button>
+<button onclick="showTab('vote')" id="tabVote">Vote</button>
+<button onclick="showTab('poll')" id="tabPoll">Poll</button>
+<button onclick="showTab('donate')" id="tabDonate">M-Pesa Support</button>
+<button onclick="showTab('careers')" id="tabCareers">Careers</button>
+<button onclick="showTab('news')" id="tabNews">News</button>
+<button onclick="showTab('admin')" id="tabAdmin">Admin</button>
+</nav>
+
+<section id="home" class="active">
+<div class="card">
+<h3>Welcome to Nginda Ward Digital Leadership Platform</h3>
+<p>Transparency, accountability and real-time leadership participation.</p>
 </div>
+</section>
 
-<div id="candidates"></div>
-<div id="status" style="text-align:center;margin-top:10px"></div>
-
-<div class="share" style="text-align:center">
-  <a class="whatsapp" onclick="shareWhatsApp()">WhatsApp</a>
-  <a class="facebook" onclick="shareFacebook()">Facebook</a>
-  <a class="support" onclick="showSupport()">Support</a>
+<section id="dashboard">
+<div class="card">
+<h3>Live Political Analytics</h3>
+<p id="totalVotes">Total Votes: 0</p>
+<p id="pollStats">Poll Responses: 0</p>
+<canvas id="voteChart"></canvas><br><br>
+<canvas id="pollChart"></canvas>
+<div id="villageStats"></div>
 </div>
+</section>
 
-<div class="chart-box"><canvas id="chart"></canvas></div>
-
-<div class="admin" id="loginBox">
-  <h3>Admin Login</h3>
-  <input type="password" id="adminPin" placeholder="Enter Admin PIN">
-  <button onclick="login()">Login</button>
-  <div id="adminMsg"></div>
+<section id="vote">
+<div class="card">
+<h3>Cast Your Leadership Vote</h3>
+<select id="villageSelect">
+<option value="">Select Your Village</option>
+<option>Gathera</option>
+<option>Itaaga</option>
+<option>Nyagachugu</option>
+<option>Irembu</option>
+<option>Ikundu</option>
+<option>Nginda</option>
+<option>Ihigaini</option>
+<option>Gakoigo</option>
+<option>Mjini</option>
+<option>Maragua Primary</option>
+<option>Gathera ACC</option>
+</select>
+<div id="candidateList"></div>
 </div>
+</section>
 
-<div class="admin" id="adminPanel" style="display:none">
-  <h3>Admin Dashboard</h3>
-  <select id="adminCandidate"></select>
-  <input type="number" id="adminVotes" placeholder="Votes to add">
-  <button onclick="addVotes()">Add Votes</button>
-  <button onclick="restartCountdown()">Restart Countdown (48hrs)</button>
-  <button onclick="resetVotes()">Reset Votes</button>
-  <button onclick="logout()">Logout</button>
-  <div id="adminMsgPanel"></div>
+<section id="poll">
+<div class="card">
+<h3>Opinion Poll</h3>
+<button class="primary" onclick="castPoll('Yes')">Yes</button>
+<button class="primary" onclick="castPoll('No')">No</button>
+<p id="pollResults"></p>
 </div>
+</section>
 
-<script>
-/* ====== ELEMENT REFERENCES ====== */
-const countdown = document.getElementById("countdown");
-const bar = document.getElementById("bar");
-const totalVotes = document.getElementById("totalVotes");
-const turnout = document.getElementById("turnout");
-const leader = document.getElementById("leader");
-const status = document.getElementById("status");
-const adminCandidate = document.getElementById("adminCandidate");
-const adminVotes = document.getElementById("adminVotes");
+<section id="donate">
+<div class="card">
+<h3>M-Pesa Support</h3>
+<p><strong>Till:</strong> 5827051</p>
+<p><strong>Phone:</strong> 0724253280</p>
+<button class="primary" onclick="window.open('https://wa.me/254724253280')">Support via WhatsApp</button>
+</div>
+</section>
 
-/* ====== FIREBASE ====== */
-firebase.initializeApp({
-  apiKey:"AIzaSyCDLp5jthejJ-h8HS653KUzqF9mBrnm2MU",
-  authDomain:"nginda-ward-polls.firebaseapp.com",
-  databaseURL:"https://nginda-ward-polls-default-rtdb.firebaseio.com",
-  projectId:"nginda-ward-polls"
-});
+<section id="careers">
+<div class="card">
+<h3>Careers</h3>
+<div id="careerList"></div>
+</div>
+</section>
 
-const db=firebase.database();
-const PATH="nginda_ward/votes";
-const META="nginda_ward/meta";
-const IPPATH="nginda_ward/ips";
-const REGISTERED=15000;
-const DURATION=48*60*60*1000;
-const ADMIN_PIN="2547";
+<section id="news">
+<div class="card">
+<h3>Latest News</h3>
+<div id="newsList"></div>
+</div>
+</section>
 
-let pollClosed=false;
-let pollStart=null;
-let userIP=null;
-let voteButtonsDisabled=true;
+<section id="admin">
+<div class="card">
+<h3>Admin Login</h3>
+<input type="email" id="adminEmail" placeholder="Email">
+<input type="password" id="adminPassword" placeholder="Password">
+<button class="primary" onclick="login()">Login</button>
+<button class="red" onclick="logout()">Logout</button>
 
-/* ====== FETCH USER IP ====== */
-fetch("https://api.ipify.org?format=json")
-.then(r=>r.json()).then(d=>{
-  userIP=d.ip;
-  voteButtonsDisabled=false;
-  document.querySelectorAll(".vote-btn").forEach(b=>{
-    if(!localStorage.voted) b.disabled=false;
+<div id="adminPanel" style="display:none;">
+<hr>
+<h4>Add Candidate</h4>
+<input type="text" id="candidateName" placeholder="Candidate Name">
+<button class="green" onclick="addCandidate()">Add Candidate</button>
+</div>
+</div>
+</section>
+
+<footer>© 2026 Nginda Ward | WA SHIRU MEDIA HUB</footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCJsFgxc258DXcLstmavixRsxpI-11tf8M",
+  authDomain: "ngindawardsystem.firebaseapp.com",
+  projectId: "ngindawardsystem",
+  storageBucket: "ngindawardsystem.appspot.com",
+  messagingSenderId: "384741290542",
+  appId: "1:384741290542:web:f1e8b507d71c5570d6a5bf"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.showTab = id => {
+  document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+};
+
+function getDeviceId(){
+  let id = localStorage.getItem("deviceId");
+  if(!id){ id="dev-"+crypto.randomUUID(); localStorage.setItem("deviceId",id);}
+  return id;
+}
+
+/* Load Candidates */
+onSnapshot(collection(db,"candidates"), snap=>{
+  let html="";
+  snap.forEach(doc=>{
+    const name=doc.data().name;
+    html+=`<button class="primary voteBtn" data-name="${name}">Vote ${name}</button><br>`;
+  });
+  document.getElementById("candidateList").innerHTML=html;
+
+  document.querySelectorAll(".voteBtn").forEach(btn=>{
+    btn.onclick=async()=>{
+      btn.disabled=true;
+      const deviceId=getDeviceId();
+      const voted=await getDocs(query(collection(db,"votes"),where("deviceId","==",deviceId)));
+      if(!voted.empty){ alert("Already voted."); btn.disabled=false; return;}
+      const village=document.getElementById("villageSelect").value;
+      if(!village){ alert("Select village."); btn.disabled=false; return;}
+      await addDoc(collection(db,"votes"),{candidate:btn.dataset.name,village,deviceId,timestamp:Date.now()});
+      btn.classList.add("voted");
+      btn.innerText="Vote Submitted ✓";
+    }
   });
 });
 
-/* ====== INIT META ====== */
-db.ref(META).get().then(s=>{
-  if(!s.exists()){
-    db.ref(META).set({start: firebase.database.ServerValue.TIMESTAMP, closed:false});
-  }
+/* Analytics */
+let voteChart,pollChart;
+
+onSnapshot(collection(db,"votes"),snap=>{
+  const counts={},villages={};
+  snap.forEach(doc=>{
+    const d=doc.data();
+    counts[d.candidate]=(counts[d.candidate]||0)+1;
+    villages[d.village]=(villages[d.village]||0)+1;
+  });
+  document.getElementById("totalVotes").innerText="Total Votes: "+snap.size;
+  updateVoteChart(counts);
+  updateVillageStats(villages);
 });
 
-/* ====== COUNTDOWN + AUTO LOCK ====== */
-db.ref(META+"/start").on("value", s => pollStart = s.val());
-db.ref(META+"/closed").on("value", s => pollClosed = !!s.val());
-
-setInterval(()=>{
-  if(!pollStart) return;
-  const remain = pollStart + DURATION - Date.now();
-  if(remain <= 0){
-    pollClosed = true;
-    countdown.innerText = "🛑 VOTING CLOSED — RESULTS LOCKED";
-    bar.style.width = "0%";
-    db.ref(META+"/closed").set(true);
-    return;
-  }
-  countdown.innerText=`⏳ ${Math.floor(remain/36e5)}h ${Math.floor(remain%36e5/6e4)}m ${Math.floor(remain%6e4/1000)}s`;
-  bar.style.width=(remain/DURATION*100)+"%";
-},1000);
-
-/* ====== CANDIDATES ====== */
-const candidates=[
-  {id:"john",name:"Hon. John MWANGI WA Mpesa"},
-  {id:"kinuthia",name:"Hon. Kinuthia Ngunjiri"},
-  {id:"zabron",name:"Hon. Zabron Machungu"},
-  {id:"thairu",name:"Hon. THAIRU Wang'endo"},
-  {id:"kamonde",name:"Hon. Engineer Martin Kamonde"},
-  {id:"tadeo",name:"Hon. Tadeo Maina"},
-  {id:"stella",name:"Hon. Stella NJERI"},
-  {id:"spoilt",name:"Undecided / Spoilt Vote"}
-];
-
-candidates.forEach(c=>{
-  db.ref(PATH+"/"+c.id).get().then(s=>{
-    if(!s.exists()) db.ref(PATH+"/"+c.id).set(0);
-  });
+onSnapshot(collection(db,"polls"),snap=>{
+  let yes=0,no=0;
+  snap.forEach(doc=>doc.data().answer==="Yes"?yes++:no++);
+  document.getElementById("pollStats").innerText="Poll Responses: "+(yes+no);
+  document.getElementById("pollResults").innerText=`Yes: ${yes} | No: ${no}`;
+  updatePollChart(yes,no);
 });
 
-let chart;
-const candidatesBox = document.getElementById("candidates");
-const chartCanvas = document.getElementById("chart");
+window.castPoll=async(answer)=>{
+  const deviceId=getDeviceId();
+  const snap=await getDocs(query(collection(db,"polls"),where("deviceId","==",deviceId)));
+  if(!snap.empty){alert("Already participated");return;}
+  await addDoc(collection(db,"polls"),{answer,deviceId,timestamp:Date.now()});
+};
 
-db.ref(PATH).on("value", s => {
-  const v = s.val()||{};
-  const total = Object.values(v).reduce((a,b)=>a+b,0);
-  totalVotes.innerText = total;
-  turnout.innerText = ((total/REGISTERED)*100).toFixed(1)+"%";
+window.addCandidate=async()=>{
+  const name=document.getElementById("candidateName").value.trim();
+  if(!name)return alert("Enter name");
+  await addDoc(collection(db,"candidates"),{name});
+  document.getElementById("candidateName").value="";
+};
 
-  const lead=[...candidates].sort((a,b)=>(v[b.id]||0)-(v[a.id]||0))[0];
-  leader.innerHTML=`<b style="color:#fff">${lead.name}</b>`;
+window.login=()=>{
+  if(adminEmail.value==="Admin@nginda.com" && adminPassword.value==="31310739"){
+    adminPanel.style.display="block";
+  } else alert("Invalid Credentials");
+};
 
-  candidatesBox.innerHTML="";
-  candidates.forEach(c=>{
-    const pct = total ? Math.round((v[c.id]||0)/total*100) : 0;
-    candidatesBox.innerHTML+=`
-      <div class="card">
-        <h3>${c.name}</h3>
-        <button class="vote-btn" onclick="vote('${c.id}')"
-          ${pollClosed||localStorage.voted||voteButtonsDisabled?"disabled":""}>
-          Vote
-        </button>
-        <div>${v[c.id]||0} votes (${pct}%)</div>
-        <div class="bar" style="width:${pct}%"></div>
-      </div>`;
-  });
+window.logout=()=>adminPanel.style.display="none";
 
-  if(chart) chart.destroy();
-  chart = new Chart(chartCanvas,{
-    type:"bar",
-    data:{labels:candidates.map(c=>c.name),datasets:[{data:candidates.map(c=>v[c.id]||0),backgroundColor:"#d4af37"}]},
-    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
-  });
-
-  adminCandidate.innerHTML = candidates.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
-});
-
-/* ====== VOTE FUNCTION ====== */
-function vote(id){
-  if(pollClosed || localStorage.voted || voteButtonsDisabled){
-    alert("Voting is closed.");
-    return;
-  }
-  const ipKey = userIP.replace(/\./g,"_");
-  db.ref(IPPATH+"/"+ipKey).get().then(s=>{
-    if(s.exists()){alert("Already voted");return;}
-    db.ref(PATH+"/"+id).transaction(v=>(v||0)+1);
-    db.ref(IPPATH+"/"+ipKey).set(true);
-    localStorage.voted="yes";
-    status.innerText="✅ Thank you for voting!";
-  });
+/* Charts */
+function updateVoteChart(data){
+  const ctx=document.getElementById("voteChart");
+  if(voteChart)voteChart.destroy();
+  voteChart=new Chart(ctx,{type:"bar",data:{labels:Object.keys(data),datasets:[{label:"Votes",data:Object.values(data),backgroundColor:"gold"}]}});
 }
-
-/* ====== ADMIN ====== */
-function login(){
-  if(adminPin.value!==ADMIN_PIN){adminMsg.innerText="Invalid PIN"; return;}
-  loginBox.style.display="none";
-  adminPanel.style.display="block";
+function updatePollChart(yes,no){
+  const ctx=document.getElementById("pollChart");
+  if(pollChart)pollChart.destroy();
+  pollChart=new Chart(ctx,{type:"pie",data:{labels:["Yes","No"],datasets:[{data:[yes,no],backgroundColor:["gold","#444"]}]}});  
 }
-
-function addVotes(){
-  if(pollClosed){alert("Results are locked"); return;}
-  const id = adminCandidate.value;
-  const v = parseInt(adminVotes.value)||0;
-  if(v<=0){alert("Enter valid vote count"); return;}
-  db.ref(PATH+"/"+id).transaction(x=>(x||0)+v);
+function updateVillageStats(data){
+  let html="<h4>Village Breakdown</h4>";
+  for(let v in data)html+=`${v}: ${data[v]} votes<br>`;
+  villageStats.innerHTML=html;
 }
-
-function restartCountdown(){
-  if(pollClosed){alert("Poll already closed"); return;}
-  db.ref(META).set({start: firebase.database.ServerValue.TIMESTAMP, closed:false});
-}
-
-function resetVotes(){
-  if(pollClosed){alert("Results are locked"); return;}
-  if(confirm("Reset all votes?")){
-    db.ref(PATH).set({});
-    db.ref(IPPATH).set({});
-    localStorage.clear();
-  }
-}
-
-function logout(){loginBox.style.display="block"; adminPanel.style.display="none";}
-
-/* ====== SUPPORT ====== */
-function showSupport(){
-  alert(`Support Media Hub via MPesa Till 5827051
-or 0724253280
-FRANCIS MWANGI KIMANI 🙏`);
-}
-
-/* ====== SHARE ====== */
-function shareWhatsApp(){window.open(`https://wa.me/?text=${encodeURIComponent(document.title+" "+location.href)}`);}
-function shareFacebook(){window.open(`https://www.facebook.com/sharer/sharer.php?u=${location.href}`);}
 </script>
 
 </body>
